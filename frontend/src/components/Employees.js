@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { apiUrl } from "../api";
+import { apiFetch } from "../api";
 
-function Employees() {
+function Employees({ user, isAdmin }) {
   const [list, setList] = useState([]);
   const [name, setName] = useState("");
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState("");
 
   const load = async () => {
-    const res = await fetch(apiUrl("get_employees.php"));
+    const res = await apiFetch("get_employees.php", {}, user);
     const data = await res.json();
     setList(Array.isArray(data) ? data : []);
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [user]);
 
   const reset = () => {
     setName("");
@@ -31,13 +31,13 @@ function Employees() {
       return;
     }
     try {
-      const url = editing ? apiUrl("update_employee.php") : apiUrl("add_employee.php");
+      const url = editing ? "update_employee.php" : "add_employee.php";
       const body = editing ? { id: editing.id, name: name.trim() } : { name: name.trim() };
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      });
+      }, user);
       const data = await res.json();
       if (data.error) {
         setError(data.error);
@@ -60,7 +60,7 @@ function Employees() {
     if (!window.confirm("Delete this employee?")) return;
     setError("");
     try {
-      const res = await fetch(apiUrl(`delete_employee.php?id=${id}`));
+      const res = await apiFetch(`delete_employee.php?id=${id}`, {}, user);
       const data = await res.json();
       if (data.error) {
         setError(data.error);
@@ -78,11 +78,13 @@ function Employees() {
       <div className="page-header">
         <h1 className="page-title">Employees</h1>
         <p className="page-desc">
-          Stylists and staff who can be selected when booking appointments (separate from login
-          accounts).
+          {isAdmin
+            ? "Stylists and staff for appointment booking (separate from login accounts)."
+            : "View staff available for appointments (admin can add or edit)."}
         </p>
       </div>
 
+      {isAdmin && (
       <section className="card card--form">
         <h2 className="card__title">{editing ? "Edit employee" : "New employee"}</h2>
         <form className="form-grid form-grid--2" onSubmit={save}>
@@ -103,6 +105,7 @@ function Employees() {
           </div>
         </form>
       </section>
+      )}
 
       <section className="card">
         <h2 className="card__title">Employee list</h2>
@@ -114,21 +117,23 @@ function Employees() {
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th />
+                  {isAdmin && <th />}
                 </tr>
               </thead>
               <tbody>
                 {list.map((em) => (
                   <tr key={em.id}>
                     <td>{em.name}</td>
-                    <td className="data-table__actions">
-                      <button type="button" className="btn btn--sm btn--ghost" onClick={() => startEdit(em)}>
-                        Edit
-                      </button>
-                      <button type="button" className="btn btn--sm btn--danger" onClick={() => del(em.id)}>
-                        Delete
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="data-table__actions">
+                        <button type="button" className="btn btn--sm btn--ghost" onClick={() => startEdit(em)}>
+                          Edit
+                        </button>
+                        <button type="button" className="btn btn--sm btn--danger" onClick={() => del(em.id)}>
+                          Delete
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . "/cors_json.php";
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/auth_helpers.php";
+
+require_admin();
 
 $data = json_decode(file_get_contents("php://input"));
 

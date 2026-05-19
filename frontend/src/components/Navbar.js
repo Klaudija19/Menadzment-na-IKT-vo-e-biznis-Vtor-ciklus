@@ -1,5 +1,12 @@
 import React from "react";
 
+const NAV_ITEMS = [
+  { id: "appointments", label: "Appointments" },
+  { id: "services", label: "Services" },
+  { id: "employees", label: "Employees" },
+  { id: "clients", label: "Clients" },
+];
+
 function Navbar({ page, setPage, setUser, user, isAdmin }) {
   const handleLogout = () => {
     setUser(null);
@@ -19,27 +26,16 @@ function Navbar({ page, setPage, setUser, user, isAdmin }) {
       </button>
 
       <nav className="navbar__nav" aria-label="Main">
-        <button
-          type="button"
-          className={`nav-link${page === "appointments" ? " nav-link--active" : ""}`}
-          onClick={() => setPage("appointments")}
-        >
-          Appointments
-        </button>
-        <button
-          type="button"
-          className={`nav-link${page === "services" ? " nav-link--active" : ""}`}
-          onClick={() => setPage("services")}
-        >
-          Services
-        </button>
-        <button
-          type="button"
-          className={`nav-link${page === "employees" ? " nav-link--active" : ""}`}
-          onClick={() => setPage("employees")}
-        >
-          Employees
-        </button>
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`nav-link${page === item.id ? " nav-link--active" : ""}`}
+            onClick={() => setPage(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
       </nav>
 
       <div className="navbar__user">

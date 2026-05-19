@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { apiUrl } from "../api";
+import { apiFetch, parseApiList, parseApiResponse } from "../api";
 
-function Appointments() {
+function Appointments({ user, isAdmin }) {
   const [list, setList] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [services, setServices] = useState([]);
+  const [clients, setClients] = useState([]);
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
 
-  const [clientName, setClientName] = useState("");
+  const [clientId, setClientId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [date, setDate] = useState("");
@@ -17,25 +18,31 @@ function Appointments() {
   const [error, setError] = useState("");
 
   const loadRefs = useCallback(async () => {
-    const [er, sr] = await Promise.all([
-      fetch(apiUrl("get_employees.php")),
-      fetch(apiUrl("get_services.php")),
+    const [er, sr, cr] = await Promise.all([
+      apiFetch("get_employees.php", {}, user),
+      apiFetch("get_services.php", {}, user),
+      apiFetch("get_clients.php", {}, user),
     ]);
-    const empData = await er.json();
-    const svcData = await sr.json();
-    setEmployees(Array.isArray(empData) ? empData : []);
-    setServices(Array.isArray(svcData) ? svcData : []);
-  }, []);
+    const emp = await parseApiList(er);
+    const svc = await parseApiList(sr);
+    const cli = await parseApiList(cr);
+    setEmployees(emp.list);
+    setServices(svc.list);
+    setClients(cli.list);
+    const err = emp.error || svc.error || cli.error;
+    if (err) setError(err);
+  }, [user]);
 
   const loadAppointments = useCallback(async () => {
     const q =
       filterEmployeeId !== ""
         ? `get_appointments.php?employee_id=${encodeURIComponent(filterEmployeeId)}`
         : "get_appointments.php";
-    const res = await fetch(apiUrl(q));
-    const data = await res.json();
-    setList(Array.isArray(data) ? data : []);
-  }, [filterEmployeeId]);
+    const res = await apiFetch(q, {}, user);
+    const { list: rows, error: err } = await parseApiList(res);
+    setList(rows);
+    if (err) setError(err);
+  }, [filterEmployeeId, user]);
 
   useEffect(() => {
     loadRefs();
@@ -46,7 +53,7 @@ function Appointments() {
   }, [loadAppointments]);
 
   const resetForm = () => {
-    setClientName("");
+    setClientId("");
     setServiceId("");
     setEmployeeId("");
     setDate("");
@@ -54,28 +61,20 @@ function Appointments() {
     setEditingId(null);
   };
 
-  const parseJsonMessage = async (res) => {
-    const text = await res.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      return { error: text || "Unexpected response from server" };
-    }
-  };
-
   const submit = async (e) => {
     e.preventDefault();
     setMessage("");
     setError("");
+    const cid = parseInt(clientId, 10);
     const sid = parseInt(serviceId, 10);
     const eid = parseInt(employeeId, 10);
-    if (!clientName.trim() || !date || !time || !sid || !eid) {
-      setError("Please fill in all fields.");
+    if (!cid || !date || !time || !sid || !eid) {
+      setError("Please fill in all fields. Add clients first (admin → Clients).");
       return;
     }
 
     const payload = {
-      client_name: clientName.trim(),
+      client_id: cid,
       service_id: sid,
       employee_id: eid,
       date,
@@ -83,21 +82,19 @@ function Appointments() {
     };
 
     try {
-      const url = editingId
-        ? apiUrl("update_appointment.php")
-        : apiUrl("add_appointment.php");
+      const url = editingId ? "update_appointment.php" : "add_appointment.php";
       const body = editingId ? { ...payload, id: editingId } : payload;
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      });
-      const data = await parseJsonMessage(res);
-      if (data.error) {
-        setError(data.error);
+      }, user);
+      const { ok, data, error: err } = await parseApiResponse(res);
+      if (!ok) {
+        setError(err);
         return;
       }
-      setMessage(data.message || "Saved.");
+      setMessage(data?.message || "Saved.");
       resetForm();
       loadAppointments();
     } catch {
@@ -106,8 +103,9 @@ function Appointments() {
   };
 
   const startEdit = (row) => {
+    if (!isAdmin) return;
     setEditingId(row.id);
-    setClientName(row.client_name || "");
+    setClientId(row.client_id != null ? String(row.client_id) : "");
     setServiceId(row.service_id != null ? String(row.service_id) : "");
     setEmployeeId(row.employee_id != null ? String(row.employee_id) : "");
     setDate(row.date || "");
@@ -118,10 +116,16 @@ function Appointments() {
   };
 
   const del = async (id) => {
+    if (!isAdmin) return;
     if (!window.confirm("Delete this appointment?")) return;
     setError("");
     try {
-      await fetch(apiUrl(`delete_appointment.php?id=${id}`));
+      const res = await apiFetch(`delete_appointment.php?id=${id}`, {}, user);
+      const { ok, error: err } = await parseApiResponse(res);
+      if (!ok) {
+        setError(err);
+        return;
+      }
       if (editingId === id) resetForm();
       loadAppointments();
     } catch {
@@ -135,13 +139,16 @@ function Appointments() {
     return Number.isFinite(n) ? `${n.toLocaleString("en-US")} MKD` : p;
   };
 
+  const clientLabel = (c) => c.full_name || `${c.first_name} ${c.last_name}`;
+
   return (
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Appointments</h1>
         <p className="page-desc">
-          Add, view, edit, and delete appointments. Double bookings for the same employee, date, and
-          time are blocked.
+          {isAdmin
+            ? "Add, view, edit, and delete appointments. Double bookings for the same employee, date, and time are blocked."
+            : "Add new appointments and view the schedule. Contact an administrator to edit or remove entries."}
         </p>
       </div>
 
@@ -171,13 +178,23 @@ function Appointments() {
 
           <label className="field">
             <span className="field__label">Client</span>
-            <input
-              className="field__input"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="Client name"
+            <select
+              className="field__input field__input--select"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
               required
-            />
+            >
+              <option value="">Select a client</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {clientLabel(c)}
+                  {c.phone ? ` · ${c.phone}` : ""}
+                </option>
+              ))}
+            </select>
+            {clients.length === 0 && (
+              <span className="field__hint">No clients yet — administrator must add clients first.</span>
+            )}
           </label>
 
           <label className="field">
@@ -240,7 +257,7 @@ function Appointments() {
             <button type="submit" className="btn btn--primary">
               {editingId ? "Save changes" : "Add appointment"}
             </button>
-            {editingId && (
+            {editingId && isAdmin && (
               <button type="button" className="btn btn--ghost" onClick={resetForm}>
                 Cancel edit
               </button>
@@ -263,7 +280,7 @@ function Appointments() {
                   <th>Employee</th>
                   <th>Date</th>
                   <th>Time</th>
-                  <th />
+                  {isAdmin && <th />}
                 </tr>
               </thead>
               <tbody>
@@ -274,14 +291,16 @@ function Appointments() {
                     <td>{a.employee_name || `Employee #${a.employee_id}`}</td>
                     <td>{a.date}</td>
                     <td>{String(a.time).slice(0, 5)}</td>
-                    <td className="data-table__actions">
-                      <button type="button" className="btn btn--sm btn--ghost" onClick={() => startEdit(a)}>
-                        Edit
-                      </button>
-                      <button type="button" className="btn btn--sm btn--danger" onClick={() => del(a.id)}>
-                        Delete
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="data-table__actions">
+                        <button type="button" className="btn btn--sm btn--ghost" onClick={() => startEdit(a)}>
+                          Edit
+                        </button>
+                        <button type="button" className="btn btn--sm btn--danger" onClick={() => del(a.id)}>
+                          Delete
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

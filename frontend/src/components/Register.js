@@ -48,9 +48,9 @@ function Register({ setPage }) {
         </button>
         <h2 className="auth-card__title">Register</h2>
         <p className="auth-card__subtitle">
-          This creates a <strong>staff login</strong> (default role: employee). After you sign in,
-          use <strong>Employees</strong> for people who appear in appointment booking, and{" "}
-          <strong>Services</strong> to add or edit treatments — separate from this login account.
+          This creates a <strong>staff login</strong> (role: employee). Staff can add and view
+          appointments only. An administrator must be set in the database (see{" "}
+          <code>migration_add_role.sql</code>) to manage clients, services, and employees.
         </p>
 
         <form className="form" onSubmit={handleRegister}>

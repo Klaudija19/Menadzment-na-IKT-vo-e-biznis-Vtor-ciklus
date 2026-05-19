@@ -2,31 +2,28 @@
 require_once __DIR__ . "/cors_json.php";
 require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/auth_helpers.php";
-require_once __DIR__ . "/client_helpers.php";
 
 require_admin();
 
 $id = isset($_GET["id"]) ? intval($_GET["id"]) : 0;
-
 if ($id <= 0) {
     echo json_encode(["error" => "Invalid id"]);
     exit;
 }
 
-$find = $conn->prepare("SELECT client_id FROM appointments WHERE id = ?");
-$find->bind_param("i", $id);
-$find->execute();
-$row = $find->get_result()->fetch_assoc();
-$clientId = $row ? (int) ($row["client_id"] ?? 0) : 0;
-$find->close();
+$check = $conn->prepare("SELECT COUNT(*) AS c FROM appointments WHERE client_id = ?");
+$check->bind_param("i", $id);
+$check->execute();
+$row = $check->get_result()->fetch_assoc();
+if ((int) $row["c"] > 0) {
+    echo json_encode(["error" => "Cannot delete: client has appointments. Remove appointments first."]);
+    exit;
+}
 
-$stmt = $conn->prepare("DELETE FROM appointments WHERE id = ?");
+$stmt = $conn->prepare("DELETE FROM clients WHERE id = ?");
 $stmt->bind_param("i", $id);
 
 if ($stmt->execute()) {
-    if ($clientId > 0) {
-        client_refresh_visit_count($conn, $clientId);
-    }
     echo json_encode(["message" => "Deleted"]);
 } else {
     echo json_encode(["error" => "Delete failed"]);

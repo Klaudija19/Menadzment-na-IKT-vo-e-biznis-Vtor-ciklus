@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . "/cors_json.php";
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/auth_helpers.php";
+
+require_role("admin", "employee");
 
 $result = $conn->query("SELECT * FROM services ORDER BY name");
 $data = [];

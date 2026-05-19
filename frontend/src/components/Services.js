@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { apiUrl } from "../api";
+import { apiFetch } from "../api";
 
-function Services() {
+function Services({ user, isAdmin }) {
   const [list, setList] = useState([]);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -9,14 +9,14 @@ function Services() {
   const [error, setError] = useState("");
 
   const load = async () => {
-    const res = await fetch(apiUrl("get_services.php"));
+    const res = await apiFetch("get_services.php", {}, user);
     const data = await res.json();
     setList(Array.isArray(data) ? data : []);
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [user]);
 
   const reset = () => {
     setName("");
@@ -34,15 +34,15 @@ function Services() {
       return;
     }
     try {
-      const url = editing ? apiUrl("update_service.php") : apiUrl("add_service.php");
+      const url = editing ? "update_service.php" : "add_service.php";
       const body = editing
         ? { id: editing.id, name: name.trim(), price: p }
         : { name: name.trim(), price: p };
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      });
+      }, user);
       const data = await res.json();
       if (data.error) {
         setError(data.error);
@@ -66,7 +66,7 @@ function Services() {
     if (!window.confirm("Delete this service?")) return;
     setError("");
     try {
-      const res = await fetch(apiUrl(`delete_service.php?id=${id}`));
+      const res = await apiFetch(`delete_service.php?id=${id}`, {}, user);
       const data = await res.json();
       if (data.error) {
         setError(data.error);
@@ -83,9 +83,14 @@ function Services() {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Services</h1>
-        <p className="page-desc">Add services, set prices, and manage the salon menu.</p>
+        <p className="page-desc">
+          {isAdmin
+            ? "Add services, set prices, and manage the salon menu."
+            : "View available services and prices (admin can add or edit)."}
+        </p>
       </div>
 
+      {isAdmin && (
       <section className="card card--form">
         <h2 className="card__title">{editing ? "Edit service" : "New service"}</h2>
         <form className="form-grid form-grid--3" onSubmit={save}>
@@ -118,6 +123,7 @@ function Services() {
           </div>
         </form>
       </section>
+      )}
 
       <section className="card">
         <h2 className="card__title">Service list</h2>
@@ -130,7 +136,7 @@ function Services() {
                 <tr>
                   <th>Service</th>
                   <th>Price</th>
-                  <th />
+                  {isAdmin && <th />}
                 </tr>
               </thead>
               <tbody>
@@ -138,14 +144,16 @@ function Services() {
                   <tr key={s.id}>
                     <td>{s.name}</td>
                     <td>{Number(s.price).toLocaleString("en-US")} MKD</td>
-                    <td className="data-table__actions">
-                      <button type="button" className="btn btn--sm btn--ghost" onClick={() => startEdit(s)}>
-                        Edit
-                      </button>
-                      <button type="button" className="btn btn--sm btn--danger" onClick={() => del(s.id)}>
-                        Delete
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="data-table__actions">
+                        <button type="button" className="btn btn--sm btn--ghost" onClick={() => startEdit(s)}>
+                          Edit
+                        </button>
+                        <button type="button" className="btn btn--sm btn--danger" onClick={() => del(s.id)}>
+                          Delete
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

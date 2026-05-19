@@ -6,6 +6,8 @@ import Navbar from "./components/Navbar";
 import Appointments from "./components/Appointments";
 import Services from "./components/Services";
 import Employees from "./components/Employees";
+import Clients from "./components/Clients";
+import SetupNotice from "./components/SetupNotice";
 import "./App.css";
 
 function App() {
@@ -26,17 +28,13 @@ function App() {
 
   return (
     <div className="app">
-      <Navbar
-        page={page}
-        setPage={setPage}
-        setUser={setUser}
-        user={user}
-        isAdmin={isAdmin}
-      />
+      <Navbar page={page} setPage={setPage} setUser={setUser} user={user} isAdmin={isAdmin} />
+      <SetupNotice />
       <main className="main">
-        {page === "appointments" && <Appointments />}
-        {page === "services" && <Services />}
-        {page === "employees" && <Employees />}
+        {page === "appointments" && <Appointments user={user} isAdmin={isAdmin} />}
+        {page === "services" && <Services user={user} isAdmin={isAdmin} />}
+        {page === "employees" && <Employees user={user} isAdmin={isAdmin} />}
+        {page === "clients" && <Clients user={user} isAdmin={isAdmin} />}
       </main>
     </div>
   );
