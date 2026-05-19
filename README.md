@@ -1,75 +1,52 @@
-# Bella Luxe — Beauty Salon
+Bella Luxe — Апликација за салон за убавина
 
-React + PHP (XAMPP) + MySQL (phpMyAdmin)
+Проектот е развиен како дел од предметот Менаџмент на ИКТ во е-бизнис (втор циклус). Станува збор за веб апликација за управување со салон за убавина, изградена со React на frontend и PHP + MySQL на backend страна преку XAMPP.
 
-## Брз старт (3 чекори)
+Технологии
 
-### 1. База — phpMyAdmin
+- Frontend: React
+- Backend: PHP (XAMPP)
+- База на податоци: MySQL (phpMyAdmin)
 
-1. Стартувај **Apache** + **MySQL** во XAMPP
-2. Отвори http://localhost/phpmyadmin
-3. **Import** → избери `beauty-salon-api/setup_full.sql` → Go
 
-Ова креира база `beauty_salon` со табели, демо податоци и admin корисник:
 
-| Email | Лозинка |
-|-------|---------|
-| `admin@bellaluxe.local` | `password` |
+ Како да се стартува проектот
 
-(или регистрирај нов корисник и во `users` стави `role = 'admin'`)
+ 1. Поставување на базата
 
-### 2. Backend — XAMPP
+Прво треба да се стартува XAMPP и да се отвори phpMyAdmin на `http://localhost/phpmyadmin`.
 
-Двојно кликни: **`kopiraj-api-vo-xampp.bat`**  
-(или рачно копирај `beauty-salon-api` во `C:\xampp\htdocs\`)
+Потоа се избира Import и се вчитува фајлот `beauty-salon-api/setup_full.sql`. Со ова автоматски се креира базата `beauty_salon` со сите потребни табели и почетни податоци.
 
-Провери: http://localhost/beauty-salon-api/health.php  
-Треба: `"ok": true`
+2. Поставување на backend
 
-### 3. Frontend — React
+За да се провери дали backend-от работи, се отвора `http://localhost/beauty-salon-api/health.php` — треба да се прикаже `"ok": true`.
 
-```bash
-cd frontend
-npm install
-copy .env.example .env.local
-npm start
-```
+3. Стартување на frontend: преку cmd во фолдерот во проектот, се пишува npm start
 
-Апликација: http://localhost:3000
 
----
+Апликацијата се отвора на `http://localhost:3000`.
 
-## Улоги
 
-| Улога | Пристап |
-|-------|---------|
-| **admin** | Клиенти, услуги, вработени, термини (целосно) |
-| **employee** | Само термини: додавање + листа |
+ Улоги во системот
 
-## Структура
+Апликацијата поддржува две улоги:
 
-```
+- Администратор — има целосен пристап: управување со клиенти, услуги, вработени и термини
+- Вработен — може да додава нови термини и да ги прегледува постоечките
+
+ Структура на проектот
+
 bella-luxe/
-├── frontend/           React app
+├── frontend/           React апликација
 ├── beauty-salon-api/   PHP API
 ├── setup_full.sql      (во beauty-salon-api/)
-└── kopiraj-api-vo-xampp.bat
-```
 
-## Чести проблеми
+ Функционалности
 
-| Симптом | Решение |
-|---------|---------|
-| Црвена лента „Setup required“ | Импортирај `setup_full.sql` |
-| Access denied | Одјава/најава; провери `role` во `users` |
-| Cannot reach API | `kopiraj-api-vo-xampp.bat`, Apache ON |
-| Нема клиенти за термин | Admin → Clients → додади клиент |
-| CORS грешка | `.env.local`: `REACT_APP_API_URL=http://localhost/beauty-salon-api` |
+- Регистрација и најава за вработени
+- Администраторски панел за управување со клиенти (име, телефон, белешки, историја на посети)
+- Додавање и бришење на услуги и вработени
+- Термини поврзани со клиенти од базата
+- Преглед на термини за вработени
 
-## Функции
-
-- Најава / регистрација (вработени)
-- Администратор: клиенти (име, телефон, email, белешки, број посети, историја)
-- Администратор: услуги и вработени (додавање/бришење)
-- Термини поврзани со клиент од базата
-- Вработен: само нов термин + преглед
